@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+model Ticket {
+  id        String       @id @default(uuid())
+  eventId   String
+  event     Event        @relation(fields: [eventId], references: [id])
+  seatLabel String
+  status    TicketStatus @default(AVAILABLE)
+  version   Int          @default(0) // optimistic concurrency guard, belt-and-suspenders with the row lock
+  updatedAt DateTime     @updatedAt
+
+  @@index([eventId, status])
+}
+
+enum TicketStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}

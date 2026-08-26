@@ -1,0 +1,89 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+
+  inventory-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - inventory-db-data:/var/lib/postgresql/data
+
+  order-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_pass
+      POSTGRES_DB: order_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+
+  auth-service:
+    build: ./services/auth-service
+    env_file: ./services/auth-service/.env
+    depends_on:
+      - auth-db
+    ports:
+      - "4001:4001"
+
+  inventory-service:
+    build: ./services/inventory-service
+    env_file: ./services/inventory-service/.env
+    depends_on:
+      - inventory-db
+      - redis
+    ports:
+      - "4002:4002"
+
+  order-service:
+    build: ./services/order-service
+    env_file: ./services/order-service/.env
+    depends_on:
+      - order-db
+      - redis
+      - inventory-service
+    ports:
+      - "4003:4003"
+
+  notification-service:
+    build: ./services/notification-service
+    env_file: ./services/notification-service/.env
+    depends_on:
+      - redis
+    ports:
+      - "4004:4004"
+
+  api-gateway:
+    build: ./services/api-gateway
+    env_file: ./services/api-gateway/.env
+    depends_on:
+      - auth-service
+      - inventory-service
+      - order-service
+      - redis
+    ports:
+      - "3000:3000"
+
+volumes:
+  auth-db-data:
+  inventory-db-data:
+  order-db-data:
